@@ -1,15 +1,30 @@
 import os
+import threading
 import requests
 import telebot
+from flask import Flask, jsonify
 from main import fetch_number_info
 
 BOT_TOKEN = os.getenv("BOT_TOKEN", "").strip()
 API_BASE_URL = os.getenv("API_BASE_URL", "").strip().rstrip("/")
+PORT = int(os.getenv("PORT", 8080))
 
 if not BOT_TOKEN:
     raise ValueError("BOT_TOKEN environment variable is missing!")
 
 bot = telebot.TeleBot(BOT_TOKEN)
+keepalive_app = Flask(__name__)
+
+
+@keepalive_app.route("/")
+def home():
+    return jsonify({"status": "ok", "bot": "running"}), 200
+
+
+@keepalive_app.route("/health")
+def health():
+    return jsonify({"status": "ok"}), 200
+
 
 DISPLAY_ORDER = [
     ("Number", "Number"),
@@ -104,5 +119,12 @@ def process_lookup(message, phone_number: str):
         )
 
 
+def run_web_server():
+    keepalive_app.run(host="0.0.0.0", port=PORT, debug=False, use_reloader=False)
+
+
 if __name__ == "__main__":
+    web_thread = threading.Thread(target=run_web_server, daemon=True)
+    web_thread.start()
     bot.infinity_polling(skip_pending=True, timeout=20, long_polling_timeout=20)
+
