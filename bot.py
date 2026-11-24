@@ -19,7 +19,7 @@ keepalive_app = Flask(__name__)
 
 @keepalive_app.route("/")
 def home():
-    return jsonify({"status": "ok", "bot": "running"}), 200
+    return jsonify({"status": "ok"}), 200
 
 
 @keepalive_app.route("/health")
@@ -121,7 +121,13 @@ def process_lookup(message, phone_number: str):
 
 
 def run_web_server():
-    keepalive_app.run(host="0.0.0.0", port=PORT, debug=False, use_reloader=False)
+    keepalive_app.run(
+        host="0.0.0.0",
+        port=PORT,
+        debug=False,
+        use_reloader=False,
+        threaded=True,
+    )
 
 
 def run_bot_polling():
@@ -129,13 +135,23 @@ def run_bot_polling():
         try:
             bot.infinity_polling(
                 skip_pending=False,
-                timeout=15,
-                long_polling_timeout=15,
-                interval=1,
+                timeout=25,
+                long_polling_timeout=25,
+                interval=3,
             )
         except Exception as exc:
-            print(f"[Polling warning] {exc} — retrying in 5 seconds...", flush=True)
-            time.sleep(5)
+            error_text = str(exc).lower()
+            is_rate_limited = (
+                getattr(exc, "error_code", None) == 429
+                or "429" in error_text
+                or "too many requests" in error_text
+            )
+            retry_delay = 40 if is_rate_limited else 10
+            print(
+                f"[Polling warning] {exc} — retrying in {retry_delay} seconds...",
+                flush=True,
+            )
+            time.sleep(retry_delay)
 
 
 if __name__ == "__main__":
