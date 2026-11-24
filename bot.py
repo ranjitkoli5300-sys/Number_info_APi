@@ -131,14 +131,20 @@ def run_web_server():
 
 
 def run_bot_polling():
+    next_update_offset = None
     while True:
         try:
-            bot.infinity_polling(
-                skip_pending=False,
+            updates = bot.get_updates(
+                offset=next_update_offset,
                 timeout=25,
                 long_polling_timeout=25,
-                interval=3,
             )
+            if updates:
+                bot.process_new_updates(updates)
+                next_update_offset = max(
+                    update.update_id for update in updates
+                ) + 1
+            time.sleep(3)
         except Exception as exc:
             error_text = str(exc).lower()
             is_rate_limited = (
