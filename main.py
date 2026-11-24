@@ -85,9 +85,15 @@ def fetch_number_info(phone_number: str) -> tuple[dict, int]:
 @app.route("/")
 def home():
     return jsonify({
-        "message": "Welcome to Number Info API",
+        "status": "ok",
+        "message": "Number Info API is running",
         "usage": "/info?number=PHONE_NUMBER",
     })
+
+
+@app.route("/health")
+def health():
+    return jsonify({"status": "ok"}), 200
 
 
 @app.route("/info", methods=["GET"])
