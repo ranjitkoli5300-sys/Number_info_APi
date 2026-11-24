@@ -1,5 +1,6 @@
 import os
 import threading
+import time
 import requests
 import telebot
 from flask import Flask, jsonify
@@ -123,8 +124,21 @@ def run_web_server():
     keepalive_app.run(host="0.0.0.0", port=PORT, debug=False, use_reloader=False)
 
 
+def run_bot_polling():
+    while True:
+        try:
+            bot.infinity_polling(
+                skip_pending=False,
+                timeout=15,
+                long_polling_timeout=15,
+                interval=1,
+            )
+        except Exception as exc:
+            print(f"[Polling warning] {exc} — retrying in 5 seconds...", flush=True)
+            time.sleep(5)
+
+
 if __name__ == "__main__":
     web_thread = threading.Thread(target=run_web_server, daemon=True)
     web_thread.start()
-    bot.infinity_polling(skip_pending=True, timeout=20, long_polling_timeout=20)
-
+    run_bot_polling()
